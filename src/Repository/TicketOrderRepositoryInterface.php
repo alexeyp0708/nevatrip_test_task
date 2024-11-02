@@ -12,7 +12,7 @@ interface TicketOrderRepositoryInterface
      * @param \App\Entity\TicketOrderInterface $order
      * @return \App\Entity\TicketOrderInterface
      */
-    public function addOrder(TicketOrderInterface $order): ?TicketOrderInterface;
+    public function saveOrder(TicketOrderInterface $order): void;
 
     public function hasOrderByBarcode(string $barcode): bool;
 }

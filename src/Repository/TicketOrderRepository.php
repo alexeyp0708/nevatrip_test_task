@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\TicketOrder;
 use App\Entity\TicketOrderInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -12,44 +13,24 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class TicketOrderRepository extends ServiceEntityRepository implements TicketOrderRepositoryInterface
 {
-    public function __construct(ManagerRegistry $registry)
+    public function __construct(
+        ManagerRegistry                         $registry,
+        private readonly EntityManagerInterface $entityManager
+    )
     {
         parent::__construct($registry, TicketOrder::class);
     }
 
-    public function addOrder(TicketOrderInterface $order): ?TicketOrderInterface
+    public function saveOrder(TicketOrderInterface $order): void
     {
-        // TODO: Implement addOrder() method.
+        $this->entityManager->persist($order);
+        $this->entityManager->flush();
     }
-    
+
     public function hasOrderByBarcode(string $barcode): bool
     {
         // TODO: Implement getOrderByBarcode() method.
+        $order = $this->entityManager->getRepository(TicketOrder::class)->findOneBy(['barcode' => $barcode]);
+        return !is_null($order);
     }
-
-
-    //    /**
-    //     * @return TicketOrder[] Returns an array of TicketOrder objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('t.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
-
-    //    public function findOneBySomeField($value): ?TicketOrder
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
 }
