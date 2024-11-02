@@ -25,7 +25,7 @@ class ApprovalOrdersRepository implements ApprovalOrdersRepositoryInterface
      */
     public function requestApprovalOrder(string $barcode): ServiceResponse|ServiceResponseError
     {
-        $uri=$this->config->get('app.route_request_approval');
+        $uri=$this->config->get('app.route_approval_request');
 
         $response=$this->client->request(
             'GET',
