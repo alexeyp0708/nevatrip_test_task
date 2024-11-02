@@ -35,16 +35,16 @@ class TicketOrderModel implements TicketOrderModelInterface
                 $spice++;
                 $barcode = $this->generateBarcode($order,$spice);
             } while ($this->checkBarcode($barcode));
-            $this->repoBarcode->saveBarcode($barcode);
+            $this->saveBarcodeInMemory($barcode);
             $check_reserved = $this->reserveAnOrder($order);
         } while (!$check_reserved);
         $approvalResponse = $this->approveOrder($barcode);
         $savedOrder = null;
         if ($approvalResponse instanceof ServiceResponse) {
             $savedOrder = $this->saveOrder($order);
-            $this->repoBarcode->removeBarcode($barcode);
+            $this->removeBarcodeInMemory($barcode);
         } else {
-            $this->repoBarcode->removeBarcode($barcode);
+            $this->removeBarcodeInMemory($barcode);
             $error= 'No reservation.';
             if ($approvalResponse instanceof ServiceResponseError) {
                 $error=$approvalResponse->error;
@@ -73,6 +73,16 @@ class TicketOrderModel implements TicketOrderModelInterface
             $check = $this->repoBarcode->hasBarcode($barcode);
         }
         return $check;
+    }
+    
+    private function saveBarcodeInMemory(string $barcode):void
+    {
+        $this->repoBarcode->saveBarcode($barcode);
+    }
+
+    private function removeBarcodeInMemory(string $barcode):void
+    {
+        $this->repoBarcode->removeBarcode($barcode);
     }
 
     private function reserveAnOrder(TicketOrderInterface $order): bool
