@@ -4,35 +4,39 @@ namespace App\Repository;
 
 use App\Entity\BarcodeMemory;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\EntityRepository;
 
-class BarcodeMemoryRepository implements BarcodeMemoryRepositoryInterface
+class BarcodeMemoryRepository extends EntityRepository implements BarcodeMemoryRepositoryInterface
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager
     )
     {
-
+        parent::__construct($entityManager,$entityManager->getClassMetadata(BarcodeMemory::class));
     }
 
     public function hasBarcode(string|BarcodeMemory $barcode): bool
     {
-        $barcode=$this->getEntity($barcode);
-        $barcode=$this->entityManager->getRepository(BarcodeMemory::class)->findOneBy(['barcode'=>$barcode->getBarcode()]);
-        return !is_null($barcode);
+        $barcode = $this->getEntity($barcode);
+        $barcode = $this->entityManager->getRepository(BarcodeMemory::class)->findOneBy(['barcode' => $barcode->getBarcode()]);
+        return !empty($barcode);
     }
 
     public function saveBarcode(string|BarcodeMemory $barcode): void
     {
-        $barcode=$this->getEntity($barcode);
+        $barcode = $this->getEntity($barcode);
         $this->entityManager->persist($barcode);
         $this->entityManager->flush();
     }
 
     public function removeBarcode(string|BarcodeMemory $barcode): void
     {
-        $barcode=$this->getEntity($barcode);
-        $this->entityManager->remove($barcode);
-        $this->entityManager->flush();
+        $barcode = $this->getEntity($barcode);
+        $barcode = $this->entityManager->getRepository(BarcodeMemory::class)->findOneBy(['barcode' => $barcode->getBarcode()]);
+        if (!empty($barcode)){
+            $this->entityManager->remove($barcode);
+            $this->entityManager->flush();
+        }
     }
 
     private function getEntity(string|BarcodeMemory $barcode): BarcodeMemory
@@ -42,6 +46,7 @@ class BarcodeMemoryRepository implements BarcodeMemoryRepositoryInterface
             $barcodeEntity = new BarcodeMemory();
             $barcodeEntity->setBarcode($barcode);
         }
+        
         return $barcodeEntity;
     }
 }

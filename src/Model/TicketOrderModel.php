@@ -6,10 +6,12 @@ use App\Entity\ServiceResponse;
 use App\Entity\ServiceResponseError;
 use App\Entity\TicketOrder;
 use App\Entity\TicketOrderInterface;
+use App\Exceptions\ApprovalRequestException;
 use App\Repository\ApprovalOrdersRepositoryInterface;
 use App\Repository\ReservationOrderRepositoryInterface;
 use App\Repository\BarcodeMemoryRepositoryInterface;
 use App\Repository\TicketOrderRepositoryInterface;
+use Symfony\Component\HttpClient\Exception\ServerException;
 
 class TicketOrderModel implements TicketOrderModelInterface
 {
@@ -25,39 +27,66 @@ class TicketOrderModel implements TicketOrderModelInterface
     }
 
     /**
-     * @throws \Exception
+     * @throws ApprovalRequestException
      */
     public function addOrderAndBook(TicketOrderInterface $order): ?TicketOrderInterface
     {
-        $spice=0;
+        $this->initOrderReservation($order);
+        return $this->initOrder($order);
+    }
+    
+    private function initOrderReservation(TicketOrderInterface $order):void
+    {
         do {
             do {
-                $spice++;
-                $barcode = $this->generateBarcode($order,$spice);
+                $barcode = $this->generateBarcode($order,mt_rand(10000, 99999));
             } while ($this->checkBarcode($barcode));
-            $this->saveBarcodeInMemory($barcode);
-            $check_reserved = $this->reserveAnOrder($order);
-        } while (!$check_reserved);
-        $approvalResponse = $this->approveOrder($barcode);
+            try {
+                $order->setBarcode($barcode);
+                $this->saveBarcodeInMemory($barcode);
+                $check_reserved = $this->reserveAnOrder($order);
+            } catch(\Throwable $e) {
+                $this->removeBarcodeInMemory($barcode);
+                throw $e;
+            }
+            if(!$check_reserved) $this->removeBarcodeInMemory($barcode);
+        } while (!$check_reserved);        
+    }
+
+    private function initOrder(TicketOrderInterface $order):?TicketOrderInterface
+    {
+        $barcode=$order->getBarcode();
+        try {
+            $approvalResponse = $this->approveOrder($barcode);
+        } catch (\Throwable $e) {
+            $this->removeBarcodeInMemory($barcode);
+            throw $e;
+        }
         $savedOrder = null;
         if ($approvalResponse instanceof ServiceResponse) {
-            $savedOrder = $this->saveOrder($order);
-            $this->removeBarcodeInMemory($barcode);
+            try{
+                $total=$order->getTicketKidPrice()*$order->getTicketKidQuantity()+
+                    $order->getTicketAdultPrice()*$order->getTicketAdultQuantity();
+                $order->setEqualPrice($total);
+                $order->setCreated(new \DateTime());
+                $savedOrder = $this->saveOrder($order);
+            } finally {
+                $this->removeBarcodeInMemory($barcode);
+            }
         } else {
             $this->removeBarcodeInMemory($barcode);
             $error= 'No reservation.';
             if ($approvalResponse instanceof ServiceResponseError) {
                 $error=$approvalResponse->error;
             }
-            // реализовать собственное исключение для перехвата.
-            throw new \Exception ($error);
+            throw new ApprovalRequestException ($error);
         }
         return $savedOrder;
     }
-
     private function generateBarcode(TicketOrder $order,string $space=''): string
     {
         $salt=$this->generateSalt($order,$space);
+
         return $this->barcodeGenerator->generateCode($salt);
     }
     

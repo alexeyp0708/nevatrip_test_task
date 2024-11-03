@@ -29,13 +29,12 @@ class ReservationOrderRepository implements ReservationOrderRepositoryInterface
     public function createReservation(TicketOrder $order): ServiceResponse|ServiceResponseError
     {
         $uri=$this->config->get('app.route_create_reservation');
-        
         $response=$this->client->request(
             'POST',
             $uri, [
                 'body'=>[
                     'event_id' => $order->getEventId(),
-                    'event_date' => $order->getEventDate(),
+                    'event_date' => $order->getEventDate()->getTimestamp(),
                     'ticket_adult_price' => $order->getTicketAdultPrice(),
                     'ticket_adult_quantity' => $order->getTicketAdultPrice(),
                     'ticket_kid_price' => $order->getTicketKidPrice(),
@@ -45,6 +44,7 @@ class ReservationOrderRepository implements ReservationOrderRepositoryInterface
             ]
         );
         $data = $response->toArray();
+
         return $this->responseFormat->convertArrayToObject($data);
     }
 }
