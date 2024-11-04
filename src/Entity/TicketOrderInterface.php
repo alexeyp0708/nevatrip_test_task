@@ -2,6 +2,13 @@
 
 namespace App\Entity;
 
+/**
+ * The entity of the ticket  orders  stack
+ *
+ * - Table : `ticket_order`
+ * - Repository : {@link TicketOrderRepository}
+ */
+
 interface TicketOrderInterface
 {
     public function getId(): ?int;

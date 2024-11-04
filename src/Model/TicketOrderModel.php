@@ -2,16 +2,15 @@
 
 namespace App\Model;
 
-use App\Entity\ServiceResponse;
-use App\Entity\ServiceResponseError;
 use App\Entity\TicketOrder;
 use App\Entity\TicketOrderInterface;
+use App\EntryLocal\ServiceResponse;
+use App\EntryLocal\ServiceResponseError;
 use App\Exceptions\ApprovalRequestException;
 use App\Repository\ApprovalOrdersRepositoryInterface;
-use App\Repository\ReservationOrderRepositoryInterface;
 use App\Repository\BarcodeMemoryRepositoryInterface;
+use App\Repository\ReservationOrderRepositoryInterface;
 use App\Repository\TicketOrderRepositoryInterface;
-use Symfony\Component\HttpClient\Exception\ServerException;
 
 class TicketOrderModel implements TicketOrderModelInterface
 {
@@ -27,35 +26,35 @@ class TicketOrderModel implements TicketOrderModelInterface
     }
 
     /**
-     * @throws ApprovalRequestException
+     * @inheritDoc
      */
     public function addOrderAndBook(TicketOrderInterface $order): ?TicketOrderInterface
     {
         $this->initOrderReservation($order);
         return $this->initOrder($order);
     }
-    
-    private function initOrderReservation(TicketOrderInterface $order):void
+
+    private function initOrderReservation(TicketOrderInterface $order): void
     {
         do {
             do {
-                $barcode = $this->generateBarcode($order,mt_rand(10000, 99999));
+                $barcode = $this->generateBarcode($order, mt_rand(10000, 99999));
             } while ($this->checkBarcode($barcode));
             try {
                 $order->setBarcode($barcode);
                 $this->saveBarcodeInMemory($barcode);
                 $check_reserved = $this->reserveAnOrder($order);
-            } catch(\Throwable $e) {
+            } catch (\Throwable $e) {
                 $this->removeBarcodeInMemory($barcode);
                 throw $e;
             }
-            if(!$check_reserved) $this->removeBarcodeInMemory($barcode);
-        } while (!$check_reserved);        
+            if (!$check_reserved) $this->removeBarcodeInMemory($barcode);
+        } while (!$check_reserved);
     }
 
-    private function initOrder(TicketOrderInterface $order):?TicketOrderInterface
+    private function initOrder(TicketOrderInterface $order): ?TicketOrderInterface
     {
-        $barcode=$order->getBarcode();
+        $barcode = $order->getBarcode();
         try {
             $approvalResponse = $this->approveOrder($barcode);
         } catch (\Throwable $e) {
@@ -64,9 +63,9 @@ class TicketOrderModel implements TicketOrderModelInterface
         }
         $savedOrder = null;
         if ($approvalResponse instanceof ServiceResponse) {
-            try{
-                $total=$order->getTicketKidPrice()*$order->getTicketKidQuantity()+
-                    $order->getTicketAdultPrice()*$order->getTicketAdultQuantity();
+            try {
+                $total = $order->getTicketKidPrice() * $order->getTicketKidQuantity() +
+                    $order->getTicketAdultPrice() * $order->getTicketAdultQuantity();
                 $order->setEqualPrice($total);
                 $order->setCreated(new \DateTime());
                 $savedOrder = $this->saveOrder($order);
@@ -75,24 +74,25 @@ class TicketOrderModel implements TicketOrderModelInterface
             }
         } else {
             $this->removeBarcodeInMemory($barcode);
-            $error= 'No reservation.';
+            $error = 'No approval.';
             if ($approvalResponse instanceof ServiceResponseError) {
-                $error=$approvalResponse->error;
+                $error = $approvalResponse->error;
             }
             throw new ApprovalRequestException ($error);
         }
         return $savedOrder;
     }
-    private function generateBarcode(TicketOrder $order,string $space=''): string
+
+    private function generateBarcode(TicketOrder $order, string $space = ''): string
     {
-        $salt=$this->generateSalt($order,$space);
+        $salt = $this->generateSalt($order, $space);
 
         return $this->barcodeGenerator->generateCode($salt);
     }
-    
-    private function generateSalt(TicketOrderInterface $order,string $space=''):string
+
+    private function generateSalt(TicketOrderInterface $order, string $space = ''): string
     {
-        return $space.'_'.$order->getEventId().'_'.$order->getEventDate()->getTimestamp().'_'.microtime();
+        return $space . '_' . $order->getEventId() . '_' . $order->getEventDate()->getTimestamp() . '_' . microtime();
     }
 
     private function checkBarcode(string $barcode): bool
@@ -103,21 +103,21 @@ class TicketOrderModel implements TicketOrderModelInterface
         }
         return $check;
     }
-    
-    private function saveBarcodeInMemory(string $barcode):void
+
+    private function saveBarcodeInMemory(string $barcode): void
     {
         $this->repoBarcode->saveBarcode($barcode);
     }
 
-    private function removeBarcodeInMemory(string $barcode):void
+    private function removeBarcodeInMemory(string $barcode): void
     {
         $this->repoBarcode->removeBarcode($barcode);
     }
 
     private function reserveAnOrder(TicketOrderInterface $order): bool
     {
-        $answer=$this->repoReservation->createReservation($order);
-        if($answer instanceof ServiceResponse){
+        $answer = $this->repoReservation->createReservation($order);
+        if ($answer instanceof ServiceResponse) {
             return true;
         }
         return false;
@@ -131,6 +131,6 @@ class TicketOrderModel implements TicketOrderModelInterface
     private function saveOrder(TicketOrderInterface $order): ?TicketOrderInterface
     {
         $this->repo->saveOrder($order);
-        return $order->getId()!==null?$order:null;
+        return $order->getId() !== null ? $order : null;
     }
 }

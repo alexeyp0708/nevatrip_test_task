@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
+ * @inheritDoc
  * @extends ServiceEntityRepository<TicketOrder>
  */
 class TicketOrderRepository extends ServiceEntityRepository implements TicketOrderRepositoryInterface
@@ -21,12 +22,18 @@ class TicketOrderRepository extends ServiceEntityRepository implements TicketOrd
         parent::__construct($registry, TicketOrder::class);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function saveOrder(TicketOrderInterface $order): void
     {
         $this->entityManager->persist($order);
         $this->entityManager->flush();
     }
 
+    /**
+     * @inheritDoc
+     */
     public function hasOrderByBarcode(string $barcode): bool
     {
         // TODO: Implement getOrderByBarcode() method.

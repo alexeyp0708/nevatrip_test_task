@@ -6,6 +6,10 @@ use App\Repository\TicketOrderRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
+/**
+ * @inheritDoc
+ */
+
 #[ORM\Entity(repositoryClass: TicketOrderRepository::class)]
 class TicketOrder implements TicketOrderInterface
 {
