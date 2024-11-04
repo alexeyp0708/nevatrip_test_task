@@ -44,7 +44,7 @@ class ReservationOrderRepository implements ReservationOrderRepositoryInterface
                 ]
             ]
         );
-        $data = $response->toArray();
+        $data = $response->toArray(false);
 
         return $this->responseFormat->convertArrayToObject($data);
     }

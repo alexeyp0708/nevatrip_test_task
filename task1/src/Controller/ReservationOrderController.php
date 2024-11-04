@@ -53,6 +53,7 @@ class ReservationOrderController extends AbstractController
         ];
         $random_number = mt_rand(0, 1);
         //return new JsonResponse($answers[0]);
+        $code=array_key_exists('error',$answers[$random_number])?403:200;
         return new JsonResponse($answers[$random_number]);
     }
 }

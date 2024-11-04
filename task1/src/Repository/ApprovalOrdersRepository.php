@@ -38,7 +38,7 @@ class ApprovalOrdersRepository implements ApprovalOrdersRepositoryInterface
                 ]
             ]
         );
-        $data = $response->toArray();
+        $data = $response->toArray(false);
         return $this->responseFormat->convertArrayToObject($data);
     }
 }
